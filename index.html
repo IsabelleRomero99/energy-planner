@@ -41,6 +41,7 @@
     line-height: 1.05;
     margin: 0 0 20px;
     letter-spacing: -0.02em;
+    text-align: center;
   }
 
   .energy { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
@@ -62,7 +63,7 @@
     border-color: var(--accent);
     color: var(--accent-ink);
   }
-  .hint { color: var(--muted); margin: 14px 0 28px; min-height: 1.5em; }
+  .hint { color: var(--muted); margin: 14px 0 28px; min-height: 1.5em; text-align: center; }
 
   form.add {
     display: grid;
@@ -79,7 +80,7 @@
     color: var(--ink);
     min-width: 0;
   }
-  form.add input[type="number"] { width: 84px; }
+  form.add input[type="number"] { width: 96px; }
   button.primary {
     font: inherit;
     font-weight: 600;
@@ -154,7 +155,7 @@
       <option value="2" selected>Medium</option>
       <option value="3">Hard</option>
     </select>
-    <input type="number" id="minutes" value="30" min="5" max="480" step="5" aria-label="Minutes">
+    <input type="number" id="minutes" placeholder="Min?" min="5" max="480" step="5" aria-label="Minutes (optional)">
     <button class="primary" type="submit">Add task</button>
   </form>
 
@@ -203,9 +204,10 @@
       var db = Math.abs(b.difficulty - target);
       if (da !== db) return da - db;
       // tie-break: sharp prefers harder, tired prefers shorter
-      if (state.energy === "sharp") return b.difficulty - a.difficulty || b.minutes - a.minutes;
-      if (state.energy === "tired") return a.minutes - b.minutes;
-      return a.minutes - b.minutes;
+      // (a task with no time estimate counts as 30 minutes for sorting)
+      var ma = a.minutes || 30, mb = b.minutes || 30;
+      if (state.energy === "sharp") return b.difficulty - a.difficulty || mb - ma;
+      return ma - mb;
     });
   }
 
@@ -238,7 +240,7 @@
       li.innerHTML =
         '<input type="checkbox" aria-label="Mark done"' + (t.done ? " checked" : "") + ">" +
         '<div><div class="title">' + (t.emoji || "📝") + " " + escapeHtml(t.title) + "</div>" +
-        '<div class="meta">' + LABELS[t.difficulty] + " · " + t.minutes + " min" + (next || match) + "</div></div>" +
+        '<div class="meta">' + LABELS[t.difficulty] + " · " + (t.minutes ? t.minutes + " min" : "no time estimate") + (next || match) + "</div></div>" +
         '<button class="del" aria-label="Delete task" title="Delete">×</button>';
       list.appendChild(li);
     });
@@ -273,7 +275,9 @@
     }
     var h = Math.floor(mins / 60), m = mins % 60;
     var span = document.createElement("span");
-    span.textContent = open.length + " to do · " + (h ? h + " h " : "") + m + " min left";
+    var unknown = open.filter(function (t) { return !t.minutes; }).length;
+    span.textContent = open.length + " to do · " + (h ? h + " h " : "") + m + " min left" +
+      (unknown ? " (+ " + unknown + " without an estimate)" : "");
     footer.appendChild(span);
     if (tasks.length !== open.length) {
       var clear = document.createElement("button");
@@ -317,7 +321,7 @@
     var title = titleEl.value.trim();
     if (!title) return;
     var difficulty = parseInt(document.getElementById("difficulty").value, 10);
-    var minutes = parseInt(document.getElementById("minutes").value, 10) || 30;
+    var minutes = parseInt(document.getElementById("minutes").value, 10) || 0;
     addTask(title, difficulty, minutes, document.getElementById("emoji").value);
     titleEl.value = "";
     titleEl.focus();
@@ -344,4 +348,3 @@
 </script>
 </body>
 </html>
-
