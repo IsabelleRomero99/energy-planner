@@ -1,1 +1,347 @@
-<h1>Hello world</h1>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Energy Planner</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@500;700;800&family=Instrument+Sans:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #1c2430;
+    --muted: #55606e;
+    --card: rgba(255, 255, 255, 0.78);
+    --bg: #f3e9d2;
+    --accent: #b8741a;
+    --accent-ink: #ffffff;
+    --head: "Bricolage Grotesque", "Trebuchet MS", sans-serif;
+    --body: "Instrument Sans", "Segoe UI", system-ui, sans-serif;
+  }
+  body[data-energy="tired"] { --bg: #dde3f0; --accent: #3f4f9c; }
+  body[data-energy="okay"]  { --bg: #f3e9d2; --accent: #a8651a; }
+  body[data-energy="sharp"] { --bg: #d6eedf; --accent: #17704a; }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--body);
+    line-height: 1.5;
+    min-height: 100vh;
+    transition: background-color 0.6s ease;
+  }
+  main { max-width: 640px; margin: 0 auto; padding: 40px 20px 80px; }
+
+  h1 {
+    font-family: var(--head);
+    font-weight: 800;
+    font-size: clamp(2rem, 7vw, 3rem);
+    line-height: 1.05;
+    margin: 0 0 20px;
+    letter-spacing: -0.02em;
+  }
+
+  .energy { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .energy button {
+    font-family: var(--head);
+    font-weight: 700;
+    font-size: 1.15rem;
+    padding: 16px 8px;
+    border: 2px solid var(--ink);
+    border-radius: 14px;
+    background: transparent;
+    color: var(--ink);
+    cursor: pointer;
+    transition: background-color 0.2s, color 0.2s, transform 0.15s;
+  }
+  .energy button:hover { transform: translateY(-2px); }
+  .energy button[aria-pressed="true"] {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: var(--accent-ink);
+  }
+  .hint { color: var(--muted); margin: 14px 0 28px; min-height: 1.5em; }
+
+  form.add {
+    display: grid;
+    grid-template-columns: 1fr auto auto auto auto;
+    gap: 8px;
+    margin-bottom: 28px;
+  }
+  form.add input, form.add select {
+    font: inherit;
+    padding: 12px;
+    border: 2px solid rgba(28, 36, 48, 0.25);
+    border-radius: 10px;
+    background: #fff;
+    color: var(--ink);
+    min-width: 0;
+  }
+  form.add input[type="number"] { width: 84px; }
+  button.primary {
+    font: inherit;
+    font-weight: 600;
+    padding: 12px 18px;
+    border: 0;
+    border-radius: 10px;
+    background: var(--accent);
+    color: var(--accent-ink);
+    cursor: pointer;
+  }
+  :focus-visible { outline: 3px solid var(--ink); outline-offset: 2px; }
+
+  ul#list { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+  .task {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    gap: 14px;
+    align-items: center;
+    background: var(--card);
+    border-radius: 14px;
+    padding: 14px 16px;
+  }
+  .task.next { border-left: 8px solid var(--accent); padding-left: 12px; }
+  .task.done { opacity: 0.5; }
+  .task.done .title { text-decoration: line-through; }
+  .task input[type="checkbox"] { width: 22px; height: 22px; accent-color: var(--accent); cursor: pointer; }
+  .title { font-weight: 600; overflow-wrap: anywhere; }
+  .meta { color: var(--muted); font-size: 0.9rem; }
+  .meta b { color: var(--accent); font-weight: 600; }
+  .del {
+    background: none; border: 0; cursor: pointer; color: var(--muted);
+    font-size: 1.3rem; line-height: 1; padding: 6px 10px; border-radius: 8px;
+  }
+  .del:hover { background: rgba(0, 0, 0, 0.08); color: var(--ink); }
+
+  .empty { color: var(--muted); padding: 24px 0; }
+  .empty button { margin-top: 10px; }
+  .footer { display: flex; justify-content: space-between; align-items: center; margin-top: 18px; color: var(--muted); font-size: 0.95rem; }
+  .linkbtn { background: none; border: 0; color: var(--ink); text-decoration: underline; cursor: pointer; font: inherit; }
+
+  @media (max-width: 520px) {
+    form.add { grid-template-columns: 1fr 1fr; }
+    form.add input[type="text"] { grid-column: 1 / -1; }
+    form.add button { grid-column: 1 / -1; }
+    form.add input[type="number"] { width: 100%; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; }
+  }
+</style>
+</head>
+<body data-energy="okay">
+<main>
+  <h1>How’s your energy right now?</h1>
+
+  <div class="energy" role="group" aria-label="Energy level">
+    <button type="button" data-level="tired" aria-pressed="false">😴 Tired</button>
+    <button type="button" data-level="okay" aria-pressed="true">🙂 Okay</button>
+    <button type="button" data-level="sharp" aria-pressed="false">⚡ Sharp</button>
+  </div>
+  <p class="hint" id="hint" aria-live="polite"></p>
+
+  <form class="add" id="addForm">
+    <input type="text" id="title" placeholder="What needs doing?" aria-label="Task name" required maxlength="120">
+    <select id="emoji" aria-label="Emoji">
+      <option>📝</option><option>📚</option><option>💻</option><option>🎧</option>
+      <option>🧹</option><option>🍳</option><option>🏃</option><option>✉️</option>
+      <option>🎨</option><option>🛒</option><option>📞</option><option>🌱</option>
+    </select>
+    <select id="difficulty" aria-label="Difficulty">
+      <option value="1">Easy</option>
+      <option value="2" selected>Medium</option>
+      <option value="3">Hard</option>
+    </select>
+    <input type="number" id="minutes" value="30" min="5" max="480" step="5" aria-label="Minutes">
+    <button class="primary" type="submit">Add task</button>
+  </form>
+
+  <ul id="list"></ul>
+  <div class="footer" id="footer"></div>
+</main>
+
+<script>
+(function () {
+  var KEY = "energy-planner-v1";
+  var LABELS = { 1: "Easy", 2: "Medium", 3: "Hard" };
+  var TARGET = { tired: 1, okay: 2, sharp: 3 };
+  var HINTS = {
+    tired: "Easy wins first. Save the heavy thinking for later.",
+    okay: "A balanced mix, starting with medium tasks.",
+    sharp: "Hard tasks first. Use this focus while you have it."
+  };
+  var state = { energy: "okay", tasks: [] };
+  var reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  function load() {
+    try {
+      var raw = localStorage.getItem(KEY);
+      if (raw) {
+        var parsed = JSON.parse(raw);
+        if (parsed && Array.isArray(parsed.tasks)) state = parsed;
+      }
+    } catch (e) { /* storage unavailable: start empty */ }
+  }
+  function save() {
+    try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) { /* ignore */ }
+  }
+
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+    });
+  }
+
+  // Sort: unfinished first, then closest to the energy level's target difficulty.
+  function sortedTasks() {
+    var target = TARGET[state.energy];
+    return state.tasks.slice().sort(function (a, b) {
+      if (a.done !== b.done) return a.done ? 1 : -1;
+      var da = Math.abs(a.difficulty - target);
+      var db = Math.abs(b.difficulty - target);
+      if (da !== db) return da - db;
+      // tie-break: sharp prefers harder, tired prefers shorter
+      if (state.energy === "sharp") return b.difficulty - a.difficulty || b.minutes - a.minutes;
+      if (state.energy === "tired") return a.minutes - b.minutes;
+      return a.minutes - b.minutes;
+    });
+  }
+
+  var list = document.getElementById("list");
+  var footer = document.getElementById("footer");
+
+  function render() {
+    document.body.setAttribute("data-energy", state.energy);
+    document.getElementById("hint").textContent = HINTS[state.energy];
+    document.querySelectorAll(".energy button").forEach(function (b) {
+      b.setAttribute("aria-pressed", String(b.dataset.level === state.energy));
+    });
+
+    // remember positions so tasks can glide to their new place
+    var before = {};
+    Array.prototype.forEach.call(list.children, function (el) {
+      before[el.dataset.id] = el.getBoundingClientRect().top;
+    });
+
+    list.innerHTML = "";
+    var tasks = sortedTasks();
+    var target = TARGET[state.energy];
+
+    tasks.forEach(function (t, i) {
+      var li = document.createElement("li");
+      li.className = "task" + (t.done ? " done" : "") + (i === 0 && !t.done ? " next" : "");
+      li.dataset.id = t.id;
+      var match = !t.done && t.difficulty === target ? " <b>· good match</b>" : "";
+      var next = i === 0 && !t.done ? " <b>· start here</b>" : "";
+      li.innerHTML =
+        '<input type="checkbox" aria-label="Mark done"' + (t.done ? " checked" : "") + ">" +
+        '<div><div class="title">' + (t.emoji || "📝") + " " + escapeHtml(t.title) + "</div>" +
+        '<div class="meta">' + LABELS[t.difficulty] + " · " + t.minutes + " min" + (next || match) + "</div></div>" +
+        '<button class="del" aria-label="Delete task" title="Delete">×</button>';
+      list.appendChild(li);
+    });
+
+    if (!reduceMotion) {
+      Array.prototype.forEach.call(list.children, function (el) {
+        var old = before[el.dataset.id];
+        if (old === undefined) return;
+        var delta = old - el.getBoundingClientRect().top;
+        if (delta) {
+          el.animate(
+            [{ transform: "translateY(" + delta + "px)" }, { transform: "none" }],
+            { duration: 380, easing: "cubic-bezier(.2,.8,.2,1)" }
+          );
+        }
+      });
+    }
+
+    renderFooter(tasks);
+  }
+
+  function renderFooter(tasks) {
+    var open = tasks.filter(function (t) { return !t.done; });
+    var mins = open.reduce(function (sum, t) { return sum + t.minutes; }, 0);
+    footer.innerHTML = "";
+    if (!tasks.length) {
+      footer.innerHTML =
+        '<div class="empty">No tasks yet. Add one above, or try some examples.<br>' +
+        '<button class="primary" type="button" id="examples">Load examples</button></div>';
+      document.getElementById("examples").addEventListener("click", loadExamples);
+      return;
+    }
+    var h = Math.floor(mins / 60), m = mins % 60;
+    var span = document.createElement("span");
+    span.textContent = open.length + " to do · " + (h ? h + " h " : "") + m + " min left";
+    footer.appendChild(span);
+    if (tasks.length !== open.length) {
+      var clear = document.createElement("button");
+      clear.className = "linkbtn";
+      clear.textContent = "Clear finished";
+      clear.addEventListener("click", function () {
+        state.tasks = state.tasks.filter(function (t) { return !t.done; });
+        save(); render();
+      });
+      footer.appendChild(clear);
+    }
+  }
+
+  function addTask(title, difficulty, minutes, emoji) {
+    state.tasks.push({
+      id: String(Date.now()) + Math.random().toString(16).slice(2, 6),
+      title: title, difficulty: difficulty, minutes: minutes, emoji: emoji || "📝", done: false
+    });
+  }
+
+  function loadExamples() {
+    addTask("Write the first draft of the essay", 3, 90, "📝");
+    addTask("Reply to emails", 1, 15, "✉️");
+    addTask("Review vocabulary flashcards", 2, 30, "📚");
+    addTask("Solve the problem set", 3, 60, "💻");
+    addTask("Tidy my desk", 1, 10, "🧹");
+    addTask("Read two articles for class", 2, 45, "📚");
+    save(); render();
+  }
+
+  document.querySelector(".energy").addEventListener("click", function (e) {
+    var btn = e.target.closest("button[data-level]");
+    if (!btn) return;
+    state.energy = btn.dataset.level;
+    save(); render();
+  });
+
+  document.getElementById("addForm").addEventListener("submit", function (e) {
+    e.preventDefault();
+    var titleEl = document.getElementById("title");
+    var title = titleEl.value.trim();
+    if (!title) return;
+    var difficulty = parseInt(document.getElementById("difficulty").value, 10);
+    var minutes = parseInt(document.getElementById("minutes").value, 10) || 30;
+    addTask(title, difficulty, minutes, document.getElementById("emoji").value);
+    titleEl.value = "";
+    titleEl.focus();
+    save(); render();
+  });
+
+  list.addEventListener("click", function (e) {
+    var li = e.target.closest(".task");
+    if (!li) return;
+    var id = li.dataset.id;
+    if (e.target.matches('input[type="checkbox"]')) {
+      state.tasks.forEach(function (t) { if (t.id === id) t.done = e.target.checked; });
+    } else if (e.target.closest(".del")) {
+      state.tasks = state.tasks.filter(function (t) { return t.id !== id; });
+    } else {
+      return;
+    }
+    save(); render();
+  });
+
+  load();
+  render();
+})();
+</script>
+</body>
+</html>
+
